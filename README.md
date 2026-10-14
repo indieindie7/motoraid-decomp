@@ -35,10 +35,11 @@ Largest groups: `bike_` 257, `hud_` 126, `menu_` 116, `fx_` 94, `pal_` 93, `test
 Unlike a rigid-body sim, a bike is a point mass with a heading. Lean and pitch are smoothed from two wheel ground
 samples, and speed comes from arcade friction, drag and boost terms. Each frame `bike_UpdatePhysicsFull`
 (`0x0020ebd0`) reads the controls, runs the state machine, ground physics (`bike_UpdateGroundPhysics` `0x00210900`:
-gravity per rider type, suspension target, damping, friction, rolling drag), tyre grip (`bike_CalcTyreForce`
+gravity scaled by rider weight, with a much stronger pull while grounded that keeps the bike on the track, suspension target, damping, friction, rolling drag), tyre grip (`bike_CalcTyreForce`
 `0x0020a4a0`), engine rpm and auto gear shift, then wall and bike-to-bike collisions. Vector maths runs on the
-coprocessor port at `0x880000`. Addresses and constants are in `NOTES.md`, "Bike physics map"; the constants are as
-read from the decompile and not yet hand-checked.
+coprocessor port at `0x880000`. Speeds are in metres per frame at 60 fps (0.00463 = 1 km/h), so the speed cap of 3.0 is
+648 km/h. Addresses are in `NOTES.md`, "Bike physics map"; the constants were hand-checked and explained in "Open items
+drill-down".
 
 ## What is here
 

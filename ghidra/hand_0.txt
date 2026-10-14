@@ -1060,7 +1060,7 @@
 0x0004ef60 func tgp_SendModelClippedScaled hand sends model if depth plus scaled extent in range 0 to 768
 0x0004f070 func tgp_SendModelClippedFar hand sends model if depth plus scaled extent above 5 and below 768
 0x0004f1d0 func tgp_SendModelParam hand sends model command with extra parameter word to TGP FIFO
-0x0004f210 func mem_CopyModelTableToFastRam hand copies 0x1df7 model command entries of 0x14 bytes to RAM at 0x200000, fixes pointers
+0x0004f210 func dead_CopyModelTableToFastRam hand dead code (no callers, older 20-byte entry layout; live table uses 16-byte entries from ROM): copies 0x1df7 model command entries of 0x14 bytes to RAM at 0x200000, fixes pointers
 0x0004f2c0 func tgp_SendModelPlain hand writes light registers and model command from table to TGP FIFO
 0x0004f380 func tgp_SendModelPlain_2 hand provisional writes light registers and model command from table to TGP FIFO
 0x0004f440 func tgp_SendModelPlain_3 hand provisional writes light registers and model command from table to TGP FIFO
@@ -1740,8 +1740,8 @@
 0x0020ffa0 func bike_UpdateRiderAnimState hand tracks previous and current animation state 0x238, loads table value, sets pose flag, plays sound 0xa01155 on fast state 0xd
 0x00210050 func bike_ApplyRollingDrag hand horizontal velocity drag from speed and height, sqrt of vx vz, zeroes velocity when below threshold
 0x002101f0 func bike_ApplyFrictionDecel hand decelerates horizontal velocity by friction scaled by surface and boost terms, zeroing when slower than decel
-0x002103b0 func bike_CalcGravityByRider hand returns gravity constant from rider-type table 0x10f80 times 8.15e-06 plus base 0.0068
-0x002103e0 func bike_CalcGravityByRiderAir hand returns gravity from rider-type table 0x10f80 times 0.00175 plus base 0.0068
+0x002103b0 func bike_CalcAirGravity hand airborne gravity: 24.5 m/s^2 base plus rider weight from rider-type table 0x10f80 times 8.15e-06 plus base 0.0068
+0x002103e0 func bike_CalcGroundStickForce hand grounded pull-down that keeps the bike on the track: base gravity plus rider weight from rider-type table 0x10f80 times 0.00175 plus base 0.0068
 0x00210410 func bike_HandleLanding hand on touchdown stores vertical velocity, plays landing sound 0xa01157 or 0xa0112d, sets landing timer, clears airborne bit
 0x002104a0 func bike_UpdateVerticalMotion hand applies gravity to height and vertical velocity, detects airborne versus ground contact and clamps to ground height
 0x00210640 func bike_SelectGroundHeight hand picks target ground height from front or rear surface sample, sets ground type, calls HandleLanding

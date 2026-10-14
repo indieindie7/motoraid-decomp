@@ -19,7 +19,7 @@ Research only, non-commercial. Names + notes + own tools; never push ROMs or ext
 - Gotcha: 8-byte (ext word) mem ctors need a parent constraint (memmode=5 | memmode>=12) or the 4-byte forms of the same opcode fail to decode.
 - Decompile test: tools\run_decomp.ps1 (ghidra\scripts\Decomp5.java), output ghidra\decomp.txt.
 - RAM code (10-14): Model 2A has 256 KB fast RAM at 0x200000-0x23ffff. Boot fn at 0x3c9e0 clears work RAM 0x57b5f0..0x5fffff, then copies 0x8000 words ROM 0xb0000 -> 0x200000 (128 KB). 95 distinct call targets 0x201010..0x21d900 (1610 calls) land in it; checked: ROM 0xb1010 = RAM 0x201010 code. Ghidra needs a block at 0x200000 filled from prog.bin 0xb0000..0xcffff.
-- A second copier at 0x4f210 writes 0x1df6 words from ROM 0x4f500 to 0x200000 with a fixup (bit 22 set -> subtract 0x200000): another RAM image, not yet identified.
+- A second copier at 0x4f210 writes 0x1df6 words from ROM 0x4f500 to 0x200000 with a fixup (bit 22 set -> subtract 0x200000): another RAM image, not yet identified. -> 10-14: dead code, see Open items drill-down.
 - Work RAM 0x500000-0x5fffff (data init: 0x37200 -> 0x510800, 0xb0 -> 0x511000). Geometrizer (TGP) port 0x804000 / 0x884000.
 
 ## Ghidra project MotorRaid2 (10-14)
@@ -41,7 +41,7 @@ Research only, non-commercial. Names + notes + own tools; never push ROMs or ext
 - Frame entry: bike_UpdatePhysicsFull 0x0020ebd0 (player) / bike_UpdatePhysicsPlayer 0x0020c630 / bike_UpdatePhysicsAI 0x0020c840: position history ring, speed clamp 3.0, bike_ReadPlayerControls 0x0020e860 (I/O bytes -> control fields +0x100..+0x124), state switch, wall check.
 - States: bike_UpdateStateWaiting 0x0020e6b0 (-1), bike_UpdateStateRacing 0x0020e710 (0-2), bike_UpdateCrashRecovery 0x0020e470 (3).
 - Ground: bike_UpdateGroundPhysics 0x00210900 = bike_UpdateVerticalMotion 0x002104a0 (gravity, airborne test) -> bike_UpdateSuspensionTarget 0x002106d0 (clamp -0.3..0.2, smooth 0.74) -> bike_ApplyVelocityDamping 0x00210850 -> bike_ApplyFrictionDecel 0x002101f0 (surface + boost) -> bike_ApplyRollingDrag 0x00210050; slide velocity from steering.
-- Gravity per rider type: bike_CalcGravityByRider 0x002103b0 (table 0x10f80 * 8.15e-06 + 0.0068), air variant 0x002103e0 (* 0.00175 + 0.0068); landing bike_HandleLanding 0x00210410.
+- Gravity per rider weight (see Open items drill-down): airborne bike_CalcAirGravity 0x002103b0 (weight table 0x10f80 * 8.15e-06 + 0.0068055554), grounded stick force bike_CalcGroundStickForce 0x002103e0 (weight * 0.00175 + 0.0068055554); landing bike_HandleLanding 0x00210410.
 - Wheels/terrain: bike_UpdateWheelGroundHeights 0x0020f7a0 (front/rear heights, smooth 0.85), bike_BlendWheelNormals 0x0020fb50 (0.25/0.75/0.5, smooth 0.58), bike_CalcSlopeTilt 0x0020f970, bike_ApplyGroundOrientation 0x0020fd70 (vertical damping 0.89). Wheel blocks at bike +0x494 / +0x53c.
 - Tyres: bike_UpdateWheelGrip 0x0020a160 -> bike_CalcTyreForce 0x0020a4a0 (slip angle, lateral force, grip ratio); bike_ApplyTyreFriction 0x000129a0; damping 0x00012b60 / 0x00012c00 (1.3/1.0/1.8).
 - Steering/lean: bike_UpdateSteerToHeading 0x0020ead0, bike_UpdateLeanFromSteer 0x0020f6e0 (lean field +0x610), bike_UpdateSteerAngles 0x0020d410, bike_SmoothSteerLean 0x00205a20.
@@ -49,3 +49,19 @@ Research only, non-commercial. Names + notes + own tools; never push ROMs or ext
 - AI: bike_UpdateTargetSpeed 0x0020cf60 (rubber-banding against the player), bike_CalcAutoSteerToTrack 0x0020f490.
 - Collisions: walls bike_CheckWallCollision 0x0020b4b0 (bounce or scrape, sound 0x28), bounces 0x0020b1f0 / 0x0020b7c0, scrape decay 0x0020bc90 (0.996); bike vs bike via a 10-slot grid (bike_InsertCollisionGrid 0x00209fe0), bike_ResolveBumpPlayerSide 0x002098b0 (range 3.6), bike_ResolveBumpWeighted 0x00209bb0 (mass-weighted push); attack hits bike_ApplyHitImpact 0x0000cf90 (damage +0x31c, impact * 0.8).
 - Not a rigid body like Ducati World: a point mass with heading, smoothed lean/pitch from two wheel ground samples, and arcade friction/drag terms.
+
+## Open items drill-down (10-14, after publish 54dabcf)
+- Junk fns 0x3b / 0x556: gone (not in funcinfo_2.tsv; no function at a non-4-aligned address).
+- 0x4f210 copier = DEAD CODE: no direct call, no pointer to 0x4f210 anywhere in prog.bin. It copies 0x1df7 entries of 0x14 bytes (5 words, bit-22 fixup on words 0-1) from ROM 0x4f500 to 0x200000, writing 2 then g14 to 0xf80000 (not mapped in MAME model2.cpp). But the live model table at 0x4f500 has 16-byte entries (every user does lda 0x4f500[gN*16]) and is read straight from ROM; the copy would also overwrite the fast-RAM code copied from 0xb0000. So: leftover from an older 20-byte table format. Renamed dead_CopyModelTableToFastRam.
+- Units (hand-checked): speeds are metres per frame at 60 fps; 0.00463 = 1 km/h (1/216). So 0.138889 = 30 km/h, 0.277778 = 60, 0.462963 = 100, 0.694444 = 150, 0.833333 = 180, 0.925926 = 200, 0.023148 = 5, 0.046296 = 10, 0.231481 = 50 km/h. Speed clamp 3.0 (bike_UpdatePhysicsFull 0x0020ebd0, speed field +0x94) = 648 km/h.
+- Rider weight table 0x10f80 (float, index (bike+0x45 >> 1) & 0xf): 240, 310, 260, 280, 260, 260, 260, 260, 235, 200.
+- Gravity (bike_UpdateVerticalMotion 0x002104a0): g = 0.0068055554 (= 24.5 m/s^2 at 60 fps, 2.5 g) + weight * k. k = 8.15e-06 when airborne (+0x184 bit 1) or in a fast jump (+0x178 bit 1, speed > 150 km/h, surface state +0x238 = 2 or 7); else k = 0.00175 = a strong weight-scaled pull that keeps a grounded bike stuck to the track. So 0x002103b0 is the AIR gravity and 0x002103e0 the GROUND stick force (round-1 names had it the other way round: renamed). Landing snap: a height gap up to 0.462963 is taken as vertical speed, the rest is snapped.
+- Other constants hand-checked against decomp_3.c (all values in the physics map are right; meanings sharpened):
+  - Suspension target 0x002106d0: only above 100 km/h; pitch input clamp +-0.05; above 1.3 m/frame (~281 km/h) adds squat (v-1.3)^2 * 0.13 (target * 0.85); clamp -0.3..0.2; smoothed into +0x6a8 at 0.74 per frame.
+  - Friction 0x002101f0: decel * (grip +0x2b4 * 0.5 + 0.5) when grip < 1; + boost +0x140 * 0.0421; * (mean wheel surface (+0x5bc + +0x514)/2 * 0.4954 + 0.5).
+  - Rolling drag 0x00210050: under 100 km/h v*0.1*0.1*0.72; plus a v^2 * 0.01 drag term.
+  - Angular damping 0x00012c00: steps of dt*1.3 (one axis) and dt*1.8 (other) toward 0, then bike_ApplyTyreFriction.
+  - Ground orientation 0x0020fd70: lean target = blended wheel normal / 1.5; field +0x154 decays * 0.89 per frame (not vertical damping).
+  - Wall hit 0x0020b4b0: rebound speed = speed + 60 km/h; new velocity = 0.052 along + 0.11 off the wall (scaled by 0.75), position pushed 0.2/0.8, upward hop +10 km/h on +0x8c; impulse id 0x28.
+  - Wall scrape 0x0020bc90: velocity * 0.996 per frame, sway * 0.925 / 0.87, capped 5 km/h.
+  - Bike vs bike 0x002098b0: within 3.6 m and height gap < 1.6 m; push 0.945 of the relative velocity; sway starts above 5 km/h side speed; side speed clamped to 180 km/h (+0x2f0 floor -200 km/h); +0x2e8 * 0.41, +0x2f0 * 0.84.
