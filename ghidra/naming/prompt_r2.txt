@@ -1,0 +1,10 @@
+Second review of provisional function names in an arcade game decompile: Motor Raid (Sega AM1, 1997, Sega Model 2A board, Intel i960 KB main CPU, little-endian). Research only. Name from what the code does; never copy text from any leaked source.
+FILE holds Ghidra decompiles ("// ==== <name> @ <addr> size=N" headers) of functions whose first-pass name was marked provisional, was data_<addr> (claimed to be data mistaken for code) or has a _<number> suffix. Each block has a "/* round 1: ... */" line with the first-pass comment and maybe a "/* decider hint: ... */" line (hw= hardware blocks touched: geo/tgp_fifo = geometry coprocessor command FIFO at 0x800000/0x804000, copro 0x880000, videoctl 0x980000, irq 0xe80000, timer 0xf00000, tile = tilemap 0x1000000, palette 0x1800000, comm = link board 0x1a00000, io = controls/lamps/sound commands 0x1c00000, backup = SRAM 0x1d00000, render 0x10000000; float=N; str= strings). All other functions already have names (you see them as callees). Code at 0x200000-0x23ffff is a fast-RAM copy of ROM code. Ghidra's i960 decompile is rough; judge by data flow.
+Many small functions are Ghidra splits (a tail fragment of the function just before it, entered by fall-through or a branch): name those <owner>_Tail and say so. A data_ block is only data if its "code" is nonsense (impossible opcodes, no ret, random constants); if it is real code, RENAME it. stub_<addr> / ret<N>_<addr> are fine (CONFIRM).
+For each function decide:
+- CONFIRM: the name fits.
+- RENAME: a clearly better name (lowercase prefix + underscore + CamelCase, letters digits underscore).
+- UNSURE: still not enough evidence. Keep it.
+Write each verdict line to OUT as soon as you decide it (append as you go), in file order, exactly:
+0x<addr 8 lowercase hex> <oldname> CONFIRM|RENAME|UNSURE <newname or oldname> <short reason, one line>
+Every function in FILE gets exactly one line. Read FILE in pieces (about 600 lines at a time). Edit no other file. At the end reply only with the counts.
