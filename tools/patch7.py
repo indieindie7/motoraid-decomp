@@ -1,0 +1,8 @@
+s=open('tools/gen_i960.py').read()
+s=s.replace("w('dstq: rd_q is m3=0 & rd_q { export rd_q; }')","w('dstq: rd_q is m3=0 & rd_q { export rd_q; }')\nw('mp: rd_p is rd_p { export rd_p; }')\nw('mt: rd_t is rd_t { export rd_t; }')\nw('mq: rd_q is rd_q { export rd_q; }')")
+s=s.replace("('dstp', 'dstp = *:8 ea;'), 'ldt': ('dstt', 'dstt = *:12 ea;'), 'ldq': ('dstq', 'dstq = *:16 ea;')","('mp', 'mp = *:8 ea;'), 'ldt': ('mt', 'mt = *:12 ea;'), 'ldq': ('mq', 'mq = *:16 ea;')")
+s=s.replace("('dstp', '*:8 ea = dstp;'), 'stt': ('dstt', '*:12 ea = dstt;'), 'stq': ('dstq', '*:16 ea = dstq;')","('mp', '*:8 ea = mp;'), 'stt': ('mt', '*:12 ea = mt;'), 'stq': ('mq', '*:16 ea = mq;')")
+open('tools/gen_i960.py','w').write(s)
+j=open('ghidra/scripts/ExportListing.java').read()
+j=j.replace("new AddressSet(ad, ad.add(3))","new AddressSet(ad, ad.add(7))")
+open('ghidra/scripts/ExportListing.java','w').write(j)
